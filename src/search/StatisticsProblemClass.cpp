@@ -322,8 +322,8 @@ namespace progression {
                 int newSCC = htn->taskToSCC[subtask];
                 // if it is the last task
                 bool lastTask = std::find(htn->methodsLastTasks[method],
-                        htn->methodsLastTasks[method] + sizeof(htn->methodsLastTasks[method]),
-                        subtask)
+                         htn->methodsLastTasks[method] + sizeof(htn->methodsLastTasks[method]),
+                         subtask)
                         != htn->methodsLastTasks[method] + sizeof(htn->methodsLastTasks[method]);
                 // if new scc is the same but decomposed task is not the last task
                 if (newSCC == orginalSCC && !lastTask) {
@@ -344,7 +344,6 @@ namespace progression {
         double statisticsAcyclic = (double) numAcyclic / numExploredNode;
         double statisticsTailRecursive = (double) numTailRecursive / numExploredNode;
 
-        cout <<  " " << endl;
         cout << "Total order: " << numTotalOrder << endl;
         cout << "Primitive: " << numPrimitive << endl;
         cout << "Regular: " << numRegular << endl;
