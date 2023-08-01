@@ -113,22 +113,28 @@ namespace progression {
         }
     }
 
-    bool isTotalOrder(searchNode *n, Model *htn, map<searchNode*, searchNode*> fatherNodes) {
-        // check whether n's father node is total order 
+    bool isFatherNodeInProblemClass(searchNode *n, map<searchNode*, searchNode*> fatherNodes, map<searchNode*, bool> inProblemClass) {
         if (fatherNodes.find(n) != fatherNodes.end()) {
             searchNode *fatherN = fatherNodes.find(n)->second;
-            if (isNodeTO.find(fatherN) != isNodeTO.end()) {
+            if (inProblemClass.find(fatherN) != inProblemClass.end()) {
                 // if father node is total order, then n is total order
-                if (isNodeTO[fatherN]) {
-                    isNodeTO[n] = true;
+                if (inProblemClass[fatherN]) {
                     return true;
                 }
             }
         }
+        return false;
+    }
+
+    bool isTotalOrder(searchNode *n, Model *htn, map<searchNode*, searchNode*> fatherNodes) {
+        // check whether n's father node is total order 
+        if (isFatherNodeInProblemClass(n, fatherNodes, isNodeTO)) {
+            isNodeTO[n] = true;
+            return true;
+        }
 
         // check if all tasks in n are in total order
-        if (n->numAbstract > 1 || n->numAbstract > 1 || \
-             (n->numAbstract == 0 && n->numPrimitive == 0 && n->containedTaskCount != 0)) {
+        if (n->numAbstract > 1 || n->numPrimitive > 1) {
             isNodeTO[n] = false;
             return false;
         }
@@ -177,15 +183,9 @@ namespace progression {
 
     bool isRegular(searchNode *n, Model *htn, map<searchNode*, searchNode*> fatherNodes) {
         // check whether n's father node is regular
-        if (fatherNodes.find(n) != fatherNodes.end()) {
-            searchNode *fatherN = fatherNodes.find(n)->second;
-            if (isNodeRegular.find(fatherN) != isNodeRegular.end()) {
-                // if father node is regular, then n is regular
-                if (isNodeRegular[fatherN]) {
-                    isNodeRegular[n] = true;
-                    return true;
-                }
-            }
+        if (isFatherNodeInProblemClass(n, fatherNodes, isNodeRegular)) {
+            isNodeRegular[n] = true;
+            return true;
         }
 
         // no abstract task
@@ -252,15 +252,9 @@ namespace progression {
 
     bool isAcyclic(searchNode *n, Model *htn, map<searchNode*, searchNode*> fatherNodes) {
         // check whether n's father node is acyclic
-        if (fatherNodes.find(n) != fatherNodes.end()) {
-            searchNode *fatherN = fatherNodes.find(n)->second;
-            if (isNodeAcyclic.find(fatherN) != isNodeAcyclic.end()) {
-                // if father node is acyclic, then n is acyclic
-                if (isNodeAcyclic[fatherN]) {
-                    isNodeAcyclic[n] = true;
-                    return true;
-                }
-            }
+        if (isFatherNodeInProblemClass(n, fatherNodes, isNodeAcyclic)) {
+            isNodeAcyclic[n] = true;
+            return true;
         }
 
         // 1. check the self loop
@@ -298,15 +292,9 @@ namespace progression {
     */
     bool isTailRecursive(searchNode *n, Model *htn, map<searchNode*, searchNode*> fatherNodes) {
         // check whether n's father node is tail-recursive
-        if (fatherNodes.find(n) != fatherNodes.end()) {
-            searchNode *fatherN = fatherNodes.find(n)->second;
-            if (isNodeTailRecursive.find(fatherN) != isNodeTailRecursive.end()) {
-                // if father node is tail-recursive, then n will be tail-recursive
-                if (isNodeTailRecursive[fatherN]) {
-                    isNodeTailRecursive[n] = true;
-                    return true;
-                }
-            }
+        if (isFatherNodeInProblemClass(n, fatherNodes, isNodeTailRecursive)) {
+            isNodeTailRecursive[n] = true;
+            return true;
         }
 
         // once the decompsition happened, the stratum height will not increase
