@@ -134,11 +134,7 @@ namespace progression {
         }
 
         // check if all tasks in n are in total order
-        if (n->numAbstract > 1 || n->numPrimitive > 1) {
-            isNodeTO[n] = false;
-            return false;
-        }
-        if (n->numAbstract == 1) {
+        if (n->numAbstract == 1 && n->numPrimitive == 0) {
             planStep *AbsTask = n->unconstraintAbstract[0];
             while (AbsTask->numSuccessors != 0) {
                 if (AbsTask->numSuccessors > 1) {
@@ -148,7 +144,7 @@ namespace progression {
                 AbsTask = AbsTask->successorList[0];
             }
         }
-        else if (n->numPrimitive == 1) {
+        else if (n->numPrimitive == 1 && n->numAbstract == 0) {
             planStep *PTask = n->unconstraintPrimitive[0];
             while (PTask->numSuccessors != 0) {
                 if (PTask->numSuccessors > 1) {
@@ -158,10 +154,19 @@ namespace progression {
                 PTask = PTask->successorList[0];
             }
         }
+        else if (n->numPrimitive == 0 && n->numAbstract == 0) {
+            isNodeTO[n] = true;
+            return true;
+        }
+        else {
+            isNodeTO[n] = false;
+            return false;
+        }
 
-        // check wether each method is total order
-        for (int iter = 0; iter < visitedMethod.size(); iter++) {
-            if (!htn->methodIsTotallyOrdered[visitedMethod[iter]]) {
+
+        // check whether each method is totally ordered
+        for (const auto& method : visitedMethod) {
+            if (!htn->isMethodTotallyOrdered(method)) {
                 isNodeTO[n] = false;
                 return false;
             }
@@ -219,8 +224,7 @@ namespace progression {
         
 
         // check wether each method is regular
-        for (int iter = 0; iter < visitedMethod.size(); iter++) {
-            int methodIter = visitedMethod[iter];
+        for (const auto& methodIter : visitedMethod) {
             // more than one last task
             if (htn->numLastTasks[methodIter] > 1) {
                 for (int p = 0; p < htn->numSubTasks[methodIter]; p++) {
@@ -259,8 +263,7 @@ namespace progression {
 
         // 1. check the self loop
         // 2. find all decomposed tasks are in which scc, and check whether any scc has more than one task
-        for (int iter = 0; iter < visitedMethod.size(); iter++) {
-            int method = visitedMethod[iter];
+        for (const auto& method : visitedMethod) {
             int task = htn->decomposedTask[method];
             // iterate all subtasks in this method
             for (int ist = 0; ist < htn->numSubTasks[method]; ist++) { 
@@ -299,8 +302,7 @@ namespace progression {
 
         // once the decompsition happened, the stratum height will not increase
         // iterate all reachable method
-        for (int iter = 0; iter < visitedMethod.size(); iter++) {
-            int method = visitedMethod[iter];
+        for (const auto& method : visitedMethod) {
             int task = htn->decomposedTask[method];
             // store the original scc
             int orginalSCC = htn->taskToSCC[task];
