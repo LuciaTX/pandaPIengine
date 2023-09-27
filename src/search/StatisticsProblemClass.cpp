@@ -75,8 +75,11 @@ namespace progression {
             // if it is acyclic, then it should be tail-recursive
             if (isAcyclic(n, htn, fatherNodes)) {
                 numAcyclic++;
-                numTailRecursive++;
-                tailRecursive = true;
+                if (!tailRecursive) {
+                    numTailRecursive++;
+                    tailRecursive = true;
+                }
+                
             }
             // a task network can be tail-recursive, without being acyclic or regular
             if (!tailRecursive) {
@@ -372,6 +375,8 @@ namespace progression {
         cout << "Regular: " << numRegular << endl;
         cout << "Acyclic: " << numAcyclic << endl;
         cout << "Tail-recursive: " << numTailRecursive << endl;
+
+        cout << "Explored Nodes: " << numExploredNode << endl;
         
         cout <<  " " << endl;
         cout << "The statistics of the problem class for the explored search space is: " << endl;
