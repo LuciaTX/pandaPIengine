@@ -58,15 +58,33 @@ namespace progression {
         }
         numExploredNode++;
 
-        if (isNodePrimitive(n, htn)) numPrimitive++;
+        // check primtive, if ture then it shouble also regular, acyclic and tail-recursive
+        if (isNodePrimitive(n, htn)) {
+            numPrimitive++;
+            numRegular++;
+            numAcyclic++;
+            numTailRecursive++;
+        } else {
+            bool tailRecursive = false;
+            // if it is regular, then it should be tail-recursive
+            if (isRegular(n, htn, fatherNodes)) {
+                numRegular++;
+                numTailRecursive++;
+                tailRecursive = true;
+            }
+            // if it is acyclic, then it should be tail-recursive
+            if (isAcyclic(n, htn, fatherNodes)) {
+                numAcyclic++;
+                numTailRecursive++;
+                tailRecursive = true;
+            }
+            // a task network can be tail-recursive, without being acyclic or regular
+            if (!tailRecursive) {
+                if (isTailRecursive(n, htn, fatherNodes)) numTailRecursive++;
+            }
+        }
 
         if (isTotalOrder(n, htn, fatherNodes)) numTotalOrder++;
-
-        if (isRegular(n, htn, fatherNodes)) numRegular++;
-
-        if (isAcyclic(n, htn, fatherNodes)) numAcyclic++;
-
-        if (isTailRecursive(n, htn, fatherNodes)) numTailRecursive++;
 
         visitedMethod.clear();
         tasksContain.clear();
@@ -204,22 +222,31 @@ namespace progression {
         for (int t = 0; t < tasksContain.size(); t++) {
             int currentT = tasksContain[t]->task;
 
+            // There are two situation that should return false:
+            // t is compound task but not the last task
+            // t is the last task, but there is other last task
             // if this is not primitive but not last task
-            if (!htn->isPrimitive[currentT] && tasksContain[t]->numSuccessors != 0) {
-                isNodeRegular[n] = false;
-                return false;
-            }
-
-            // if this task is the last task
-            if (tasksContain[t]->numSuccessors == 0) {
-                // have no last task before
-                if (!oneLastTask) {
-                    oneLastTask = true;
-                } else {
+            if (!htn->isPrimitive[currentT] ) {
+                // not the last task
+                if (tasksContain[t]->numSuccessors != 0) {
                     isNodeRegular[n] = false;
                     return false;
+                } else { // if this task is the last task
+                    // no count last task before
+                    if (!oneLastTask) {
+                        oneLastTask = true;
+                    } else {    // not the only last task (another compound last task)
+                        isNodeRegular[n] = false;
+                        return false;
+                    }
+                    
                 }
-            } 
+            } else {
+                // another primitive last task
+                if (tasksContain[t]->numSuccessors == 0) {
+                    return false;
+                }
+            }
         }
         
 
@@ -300,7 +327,7 @@ namespace progression {
             return true;
         }
 
-        // once the decompsition happened, the stratum height will not increase
+        // rule: once the decompsition happened, the stratum height will not increase
         // iterate all reachable method
         for (const auto& method : visitedMethod) {
             int task = htn->decomposedTask[method];
@@ -310,15 +337,21 @@ namespace progression {
             for (int ist = 0; ist < htn->numSubTasks[method]; ist++) { 
                 int subtask = htn->subTasks[method][ist];
                 int newSCC = htn->taskToSCC[subtask];
-                // if it is the last task
-                bool lastTask = std::find(htn->methodsLastTasks[method],
-                         htn->methodsLastTasks[method] + sizeof(htn->methodsLastTasks[method]),
-                         subtask)
-                        != htn->methodsLastTasks[method] + sizeof(htn->methodsLastTasks[method]);
-                // if new scc is the same but decomposed task is not the last task
-                if (newSCC == orginalSCC && !lastTask) {
-                    isNodeTailRecursive[n] = false;
-                    return false;
+                // check the number of last tasks in the method
+                // if there is more than one last task
+                if (htn->numLastTasks[method] != 1) {
+                    // no subtask should be at same height
+                    if (newSCC == orginalSCC) {
+                        isNodeTailRecursive[n] = false;
+                        return false;
+                    }
+                // if there is exactly one last task
+                } else {
+                    // if new scc is the same but decomposed task is not the last task
+                    if (subtask != htn->methodsLastTasks[method][0] && newSCC == orginalSCC) {
+                        isNodeTailRecursive[n] = false;
+                        return false;
+                    }  
                 }
             }
         }
