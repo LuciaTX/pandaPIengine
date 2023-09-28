@@ -11,7 +11,9 @@
 #include "../ProgressionNetwork.h"
 #include "../heuristics/hhZero.h"
 #include "../heuristics/rcHeuristics/hhRC.h"
-#include "StatisticsProblemClass.h" // NOTE:
+// NOTE
+#include "StatisticsProblemClass.h" 
+#include "NodeProperties.h" 
 
 #ifdef LMCOUNTHEURISTIC
 #include "../heuristics/landmarks/hhLMCount.h"
@@ -21,7 +23,11 @@
 #include <iomanip>
 #include <sys/time.h>
 #include <Heuristic.h>
-#include <map> // NOTE:
+// NOTE
+#include <map> 
+#include <iostream>
+#include <vector>
+#include <memory>
 
 namespace progression {
 
@@ -71,7 +77,12 @@ namespace progression {
             fringe.push(tnI);
             assert(!fringe.isEmpty());
 
-            map<searchNode*, searchNode*> fatherNodes;    // NOTE: <fatherNode, childNode> 
+            // NOTE: Vector to hold all nodes
+            // std::vector<std::unique_ptr<NodeProperties>> allNodes;
+            map<searchNode*, NodeProperties*> correspondNode;
+            correspondNode[tnI] = new NodeProperties();
+            // // map<searchNode*, searchNode*> fatherNodes;    // NOTE: <childNode, fatherNode> 
+            // NOTE: end
 
             int numSearchNodes = 1;
 
@@ -84,8 +95,33 @@ namespace progression {
                     delete n;
                     continue;
                 }
-                //assert(!visitedList.insertVisi(n));
-                findProblemClass(n, htn, fatherNodes); //NOTE:
+
+                // findProblemClass(n, htn, fatherNodes); //NOTE
+                /* 
+                findProblemClass should happen when a search node n pop from the fringe
+                After n pop form fringe, n's fathernode's childrenNodeLeft should -1
+                A new NodeProperties will be create when a node n2 is push to the fringe, and its father node n's childrenNodeLeft will +1
+                Check if n's father node has 0 children, if it is, push n's father node to the vector to delete
+                */
+                // NOTE: get the corresponding nodeProperties of n
+                NodeProperties *node = correspondNode[n];
+                if (node == nullptr) {
+                    cout << "node null in map" << endl;
+                }
+                findProblemClass(n, htn, node); // input: searchNode, model, nodeProperties
+
+                // get node's father node and delete 1 in childrenNodeleft
+                auto fatherNode = node->getFatherNode();
+                if (fatherNode != nullptr) {
+                    fatherNode->deleteOneChildrenNode();
+                }
+                
+                // delete node if there is no children node left
+                if (fatherNode != nullptr && fatherNode->getChildrenNodeLeft() == 0) {
+                    delete fatherNode;
+                }
+                
+                // NOTE: end
 
                 if (!suboptimalSearch && htn->isGoal(n)) {
                     // A non-early goal test makes only sense in an optimal planning setting.
@@ -155,7 +191,24 @@ namespace progression {
                         }
 
                         fringe.push(n2);
-                        fatherNodes[n2] = n; // NOTE: n2's father node is n
+                        // NOTE: create an new nodeProperties and copy its fathernode's properties
+                        NodeProperties* node2 = new NodeProperties();
+                        node2->setFatherNode(node);
+                        node->addOneChildrenNode();
+                        /*
+                        node2->setPrimitive(node->isPrimitive);
+                        node2->setTotallyOrdered(node->isTotallyOrdered);
+                        node2->setRegular(node->isRegular);
+                        node2->setAcyclic(noed->isAcyclic);
+                        node2->setTailRecursive(node->isTailRecursive);
+                        */
+                        node2->setProgressed(true);
+                        correspondNode[n2] = node2; // set node2 as the corresponding node of n2
+                        if (correspondNode[n2]) {
+                            cout << "not put successful" << endl;
+                        }
+                        // //fatherNodes[n2] = n; // NOTE: n2's father node is n
+                        // NOTE: end
                     }
                 }
 
@@ -221,7 +274,12 @@ namespace progression {
 
                         }
                         fringe.push(n2);
-                        fatherNodes[n2] = n; // NOTE: n2's father node is n
+                        // NOTE: set the new nodeProperties and set its father node
+                        NodeProperties* node2 = new NodeProperties();;
+                        node2->setFatherNode(node);
+                        node->addOneChildrenNode();
+                        correspondNode[n2] = node2; // set node2 as the corresponding node of n2
+                        // // fatherNodes[n2] = n; // NOTE: n2's father node is n
                     }
                 }
 

@@ -5,7 +5,6 @@
  *      Author: Lijia Yuan
  */
 
-#include <map>
 #include <vector>
 #include <iostream>
 #include <algorithm>
@@ -23,16 +22,15 @@ namespace progression {
     int numTotalOrder = 0;
     int numExploredNode = 0;
     int numTailRecursive = 0;
-    map<searchNode*, bool> isNodeTO;
-    map<searchNode*, bool> isNodeRegular;
-    map<searchNode*, bool> isNodeAcyclic;
-    map<searchNode*, bool> isNodeTailRecursive;
 #endif
     vector<int> visitedMethod;
     vector<planStep*> tasksContain;
-
-    void findProblemClass(searchNode *n, Model *htn, map<searchNode*, searchNode*> fatherNodes) {
+    // TODO:
+    void findProblemClass(searchNode *n, Model *htn, NodeProperties *node) {
         // store all reachable methods
+        if (node == nullptr) {
+            cout << "node null in transport" << endl;
+        }
         for (int i = 0; i < n->numContainedTasks; i++) {
             int taskInNode = n->containedTasks[i];
             if (htn->numMethodsForTask[taskInNode] != 0) {
@@ -57,37 +55,62 @@ namespace progression {
             }
         }
         numExploredNode++;
-
-        // check primtive, if ture then it shouble also regular, acyclic and tail-recursive
-        if (isNodePrimitive(n, htn)) {
-            numPrimitive++;
-            numRegular++;
-            numAcyclic++;
-            numTailRecursive++;
-        } else {
-            bool tailRecursive = false;
-            // if it is regular, then it should be tail-recursive
-            if (isRegular(n, htn, fatherNodes)) {
-                numRegular++;
-                numTailRecursive++;
-                tailRecursive = true;
+        
+        // if the node is getting by progressed an action away
+        // we can inherit some properties from father node
+        if (node->isProgressed()) {
+            auto fatherNode = node->getFatherNode();
+            node->setPrimitive(fatherNode->isPrimitive());
+            node->setRegular(fatherNode->isRegular());
+            node->setAcyclic(fatherNode->isAcyclic());
+            node->setTailRecursive(fatherNode->isTailRecursive());
+            if (node->isPrimitive()) {
+                numPrimitive++;
             }
-            // if it is acyclic, then it should be tail-recursive
-            if (isAcyclic(n, htn, fatherNodes)) {
+            if (node->isRegular()) {
+                numRegular++;
+            }
+            if (node->isAcyclic()) {
                 numAcyclic++;
-                if (!tailRecursive) {
+            }
+            if (node->isTailRecursive()) {
+                numTailRecursive++;
+            }
+
+            if (isTotalOrder(n, htn, node)) numTotalOrder++;
+        } else {
+            // check primtive, if ture then it shouble also regular, acyclic and tail-recursive
+            if (isNodePrimitive(n, htn)) {
+                node->setPrimitive(true);
+                numPrimitive++;
+                numRegular++;
+                numAcyclic++;
+                numTailRecursive++;
+            } else {
+                bool tailRecursive = false;
+                // if it is regular, then it should be tail-recursive
+                if (isRegular(n, htn, node)) {
+                    numRegular++;
                     numTailRecursive++;
                     tailRecursive = true;
                 }
-                
+                // if it is acyclic, then it should be tail-recursive
+                if (isAcyclic(n, htn, node)) {
+                    numAcyclic++;
+                    if (!tailRecursive) {
+                        numTailRecursive++;
+                        tailRecursive = true;
+                    }
+                }
+                // a task network can be tail-recursive, without being acyclic or regular
+                if (!tailRecursive) {
+                    if (isTailRecursive(n, htn, node)) numTailRecursive++;
+                }
             }
-            // a task network can be tail-recursive, without being acyclic or regular
-            if (!tailRecursive) {
-                if (isTailRecursive(n, htn, fatherNodes)) numTailRecursive++;
-            }
-        }
 
-        if (isTotalOrder(n, htn, fatherNodes)) numTotalOrder++;
+            if (isTotalOrder(n, htn, node)) numTotalOrder++;
+
+        }
 
         visitedMethod.clear();
         tasksContain.clear();
@@ -134,6 +157,7 @@ namespace progression {
         }
     }
 
+    /*
     bool isFatherNodeInProblemClass(searchNode *n, map<searchNode*, searchNode*> fatherNodes, map<searchNode*, bool> inProblemClass) {
         if (fatherNodes.find(n) != fatherNodes.end()) {
             searchNode *fatherN = fatherNodes.find(n)->second;
@@ -146,11 +170,14 @@ namespace progression {
         }
         return false;
     }
+    */
+    
 
-    bool isTotalOrder(searchNode *n, Model *htn, map<searchNode*, searchNode*> fatherNodes) {
+    bool isTotalOrder(searchNode *n, Model *htn, NodeProperties *node) {
         // check whether n's father node is total order 
-        if (isFatherNodeInProblemClass(n, fatherNodes, isNodeTO)) {
-            isNodeTO[n] = true;
+        auto fatherNode = node->getFatherNode();
+        if (fatherNode != nullptr && fatherNode->isTotallyOrdered()) {
+            node->setTotallyOrdered(true);
             return true;
         }
 
@@ -159,7 +186,6 @@ namespace progression {
             planStep *AbsTask = n->unconstraintAbstract[0];
             while (AbsTask->numSuccessors != 0) {
                 if (AbsTask->numSuccessors > 1) {
-                    isNodeTO[n] = false;
                     return false;
                 }
                 AbsTask = AbsTask->successorList[0];
@@ -169,31 +195,27 @@ namespace progression {
             planStep *PTask = n->unconstraintPrimitive[0];
             while (PTask->numSuccessors != 0) {
                 if (PTask->numSuccessors > 1) {
-                    isNodeTO[n] = false;
                     return false;
                 }
                 PTask = PTask->successorList[0];
             }
         }
         else if (n->numPrimitive == 0 && n->numAbstract == 0) {
-            isNodeTO[n] = true;
+            node->setTotallyOrdered(true);
             return true;
         }
         else {
-            isNodeTO[n] = false;
             return false;
         }
-
 
         // check whether each method is totally ordered
         for (const auto& method : visitedMethod) {
             if (!htn->isMethodTotallyOrdered(method)) {
-                isNodeTO[n] = false;
                 return false;
             }
         }
         
-        isNodeTO[n] = true;
+        node->setTotallyOrdered(true);
         return true;
     }
 
@@ -207,18 +229,21 @@ namespace progression {
         return true;
     }
 
-    bool isRegular(searchNode *n, Model *htn, map<searchNode*, searchNode*> fatherNodes) {
+    bool isRegular(searchNode *n, Model *htn, NodeProperties *node) {
         // check whether n's father node is regular
-        if (isFatherNodeInProblemClass(n, fatherNodes, isNodeRegular)) {
-            isNodeRegular[n] = true;
+        auto fatherNode = node->getFatherNode();
+        if (fatherNode != nullptr && fatherNode->isRegular()) {
+            node->setRegular(true);
             return true;
         }
 
+        /*
         // no abstract task
         if (isNodePrimitive(n, htn)) {
-            isNodeRegular[n] = true;
+            node->setRegular(true);
             return true;
         }
+        */
         
         bool oneLastTask = false;
         // iterate all tasks in n
@@ -232,14 +257,12 @@ namespace progression {
             if (!htn->isPrimitive[currentT] ) {
                 // not the last task
                 if (tasksContain[t]->numSuccessors != 0) {
-                    isNodeRegular[n] = false;
                     return false;
                 } else { // if this task is the last task
                     // no count last task before
                     if (!oneLastTask) {
                         oneLastTask = true;
                     } else {    // not the only last task (another compound last task)
-                        isNodeRegular[n] = false;
                         return false;
                     }
                     
@@ -260,7 +283,6 @@ namespace progression {
                 for (int p = 0; p < htn->numSubTasks[methodIter]; p++) {
                     // any task in this method is not primitive
                     if (!htn->isPrimitive[htn->subTasks[methodIter][p]]) {
-                        isNodeRegular[n] = false;
                         return false;
                     }
                 }
@@ -272,7 +294,6 @@ namespace progression {
                     int subtask = htn->subTasks[methodIter][ist];
                     // if a task is not last task but also not primitive
                     if (!htn->isPrimitive[subtask] && lastTask != subtask) {
-                        isNodeRegular[n] = false;
                         return false;
                     }
                 }
@@ -280,14 +301,15 @@ namespace progression {
             
         }
 
-        isNodeRegular[n] = true;
+        node->setRegular(true);
         return true;
     }
 
-    bool isAcyclic(searchNode *n, Model *htn, map<searchNode*, searchNode*> fatherNodes) {
+    bool isAcyclic(searchNode *n, Model *htn, NodeProperties *node) {
         // check whether n's father node is acyclic
-        if (isFatherNodeInProblemClass(n, fatherNodes, isNodeAcyclic)) {
-            isNodeAcyclic[n] = true;
+        auto fatherNode = node->getFatherNode();
+        if (fatherNode != nullptr && fatherNode->isAcyclic()) {
+            node->setAcyclic(true);
             return true;
         }
 
@@ -299,7 +321,6 @@ namespace progression {
             for (int ist = 0; ist < htn->numSubTasks[method]; ist++) { 
                 int subtask = htn->subTasks[method][ist];
                 if (subtask == task) {
-                    isNodeAcyclic[n] = false;
                     return false;
                 }
             }
@@ -308,12 +329,11 @@ namespace progression {
             int scc = htn->taskToSCC[task];
             // if there are more than 1 task in this scc
             if (htn->sccSize[scc] != 1) {
-                isNodeAcyclic[n] = false;
                 return false;
             }
         }
 
-        isNodeAcyclic[n] = true;
+        node->setAcyclic(true);
         return true;
     }
 
@@ -323,10 +343,11 @@ namespace progression {
         the other subtasks have lower height stratification
         than the decoposed task
     */
-    bool isTailRecursive(searchNode *n, Model *htn, map<searchNode*, searchNode*> fatherNodes) {
+    bool isTailRecursive(searchNode *n, Model *htn, NodeProperties *node) {
         // check whether n's father node is tail-recursive
-        if (isFatherNodeInProblemClass(n, fatherNodes, isNodeTailRecursive)) {
-            isNodeTailRecursive[n] = true;
+        auto fatherNode = node->getFatherNode();
+        if (fatherNode != nullptr && fatherNode->isTailRecursive()) {
+            node->setTailRecursive(true);
             return true;
         }
 
@@ -345,21 +366,19 @@ namespace progression {
                 if (htn->numLastTasks[method] != 1) {
                     // no subtask should be at same height
                     if (newSCC == orginalSCC) {
-                        isNodeTailRecursive[n] = false;
                         return false;
                     }
                 // if there is exactly one last task
                 } else {
                     // if new scc is the same but decomposed task is not the last task
                     if (subtask != htn->methodsLastTasks[method][0] && newSCC == orginalSCC) {
-                        isNodeTailRecursive[n] = false;
                         return false;
                     }  
                 }
             }
         }
         
-        isNodeTailRecursive[n] = true;
+        node->setTailRecursive(true);
         return true;
     }
 
