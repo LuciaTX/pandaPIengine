@@ -41,9 +41,19 @@ namespace progression {
 
     extern int numTotalOrder;
 
+    extern int numTailAndAcyclic;
+
+    extern int numTailAndRegular;
+
     extern int numExploredNode;
 
     extern int numTailRecursive;
+
+    extern int numProgressedNode;
+
+    extern int numAcyclicAndRegular;
+
+    extern int numOnlyTailRecursive;
 
     extern vector<int> visitedMethod;
     

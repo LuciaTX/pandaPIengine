@@ -22,6 +22,11 @@ namespace progression {
     int numTotalOrder = 0;
     int numExploredNode = 0;
     int numTailRecursive = 0;
+    int numTailAndAcyclic = 0;
+    int numAcyclicAndRegular = 0;
+    int numTailAndRegular = 0;
+    int numOnlyTailRecursive = 0;
+    int numProgressedNode = 0;
 #endif
     vector<int> visitedMethod;
     vector<planStep*> tasksContain;
@@ -76,12 +81,16 @@ namespace progression {
             if (node->isTailRecursive()) {
                 numTailRecursive++;
             }
-
+            
             if (isTotalOrder(n, htn, node)) numTotalOrder++;
+            numProgressedNode++;
         } else {
             // check primtive, if ture then it shouble also regular, acyclic and tail-recursive
             if (isNodePrimitive(n, htn)) {
                 node->setPrimitive(true);
+                node->setRegular(true);
+                node->setAcyclic(true);
+                node->setTailRecursive(true);
                 numPrimitive++;
                 numRegular++;
                 numAcyclic++;
@@ -92,6 +101,7 @@ namespace progression {
                 if (isRegular(n, htn, node)) {
                     numRegular++;
                     numTailRecursive++;
+                    node->setTailRecursive(true);
                     tailRecursive = true;
                 }
                 // if it is acyclic, then it should be tail-recursive
@@ -99,6 +109,7 @@ namespace progression {
                     numAcyclic++;
                     if (!tailRecursive) {
                         numTailRecursive++;
+                        node->setTailRecursive(true);
                         tailRecursive = true;
                     }
                 }
@@ -110,6 +121,19 @@ namespace progression {
 
             if (isTotalOrder(n, htn, node)) numTotalOrder++;
 
+        }
+
+        if (node->isRegular() && node->isAcyclic()) {
+            numAcyclicAndRegular++;
+        } else if (node->isRegular() && !node->isAcyclic())
+        {
+            numTailAndRegular++;
+        } else if (!node->isRegular() && node->isAcyclic())
+        {
+            numTailAndAcyclic++;
+        } else if (!node->isRegular() && !node->isAcyclic() && node->isTailRecursive())
+        {
+            numOnlyTailRecursive++;
         }
 
         visitedMethod.clear();
@@ -388,12 +412,23 @@ namespace progression {
         double statisticsRegular = (double) numRegular / numExploredNode;
         double statisticsAcyclic = (double) numAcyclic / numExploredNode;
         double statisticsTailRecursive = (double) numTailRecursive / numExploredNode;
+        double statisticsTailAndAcyclic = (double) numTailAndAcyclic / numExploredNode;
+        double statisticsTailAndRegular = (double) numTailAndRegular / numExploredNode;
+        double statisticsOnlyTail = (double) numOnlyTailRecursive / numExploredNode;
+        double statisticsAcyReg = (double) numAcyclicAndRegular/ numExploredNode;
+        double statisticsProgressed = (double) numProgressedNode/ numExploredNode;
+
 
         cout << "Total order: " << numTotalOrder << endl;
         cout << "Primitive: " << numPrimitive << endl;
         cout << "Regular: " << numRegular << endl;
         cout << "Acyclic: " << numAcyclic << endl;
         cout << "Tail-recursive: " << numTailRecursive << endl;
+        cout << "Tail-recursive + Acyclic: " << numTailAndAcyclic << endl;
+        cout << "Tail-recursive + Regular: " << numTailAndRegular << endl;
+        cout << "Both Acyclic and Regular: " << numAcyclicAndRegular << endl;
+        cout << "Tail-recursive without Acyclic and Regular: " << numOnlyTailRecursive << endl;
+        cout << "Progressed Node: " << numProgressedNode << endl;
 
         cout << "Explored Nodes: " << numExploredNode << endl;
         
@@ -404,6 +439,11 @@ namespace progression {
         cout << "Regular: " << fixed << setprecision(6) << statisticsRegular << endl;
         cout << "Acyclic: " << fixed << setprecision(6) << statisticsAcyclic << endl;
         cout << "Tail-recursive: " << fixed << setprecision(6) << statisticsTailRecursive << endl;
+        cout << "Tail-recursive + Acyclic: " << fixed << setprecision(6) << statisticsTailAndAcyclic << endl;
+        cout << "Tail-recursive + Regular: " << fixed << setprecision(6) << statisticsTailAndRegular << endl;
+        cout << "Both Acyclic and Regular: " << fixed << setprecision(6) << statisticsAcyReg << endl;
+        cout << "Tail-recursive without Acyclic and Regular: " << fixed << setprecision(6) << statisticsOnlyTail << endl;
+        cout << "Progressed node: " << fixed << setprecision(6) << statisticsProgressed << endl;
         cout <<  " " << endl;
     }
 }
