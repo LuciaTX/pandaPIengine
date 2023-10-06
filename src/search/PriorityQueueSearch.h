@@ -105,9 +105,6 @@ namespace progression {
                 */
                 // NOTE: get the corresponding nodeProperties of n
                 NodeProperties *node = correspondNode[n];
-                if (node == nullptr) {
-                    cout << "node null in map" << endl;
-                }
                 findProblemClass(n, htn, node); // input: searchNode, model, nodeProperties
 
                 // get node's father node and delete 1 in childrenNodeleft
@@ -204,9 +201,6 @@ namespace progression {
                         */
                         node2->setProgressed(true);
                         correspondNode[n2] = node2; // set node2 as the corresponding node of n2
-                        if (correspondNode[n2]) {
-                            cout << "not put successful" << endl;
-                        }
                         // //fatherNodes[n2] = n; // NOTE: n2's father node is n
                         // NOTE: end
                     }
