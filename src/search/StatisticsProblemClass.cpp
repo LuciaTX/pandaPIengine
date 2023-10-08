@@ -82,7 +82,10 @@ namespace progression {
                 numTailRecursive++;
             }
             
-            if (isTotalOrder(n, htn, node)) numTotalOrder++;
+            if (isTotalOrder(n, htn, node)) {
+                numTotalOrder++;
+                node->setTotallyOrdered(true);
+            }
             numProgressedNode++;
         } else {
             // check primtive, if ture then it shouble also regular, acyclic and tail-recursive
@@ -96,30 +99,37 @@ namespace progression {
                 numAcyclic++;
                 numTailRecursive++;
             } else {
-                bool tailRecursive = false;
                 // if it is regular, then it should be tail-recursive
                 if (isRegular(n, htn, node)) {
                     numRegular++;
                     numTailRecursive++;
                     node->setTailRecursive(true);
-                    tailRecursive = true;
+                    node->setRegular(true);
                 }
                 // if it is acyclic, then it should be tail-recursive
                 if (isAcyclic(n, htn, node)) {
                     numAcyclic++;
-                    if (!tailRecursive) {
+                    node->setAcyclic(true);
+                    if (!node->isTailRecursive()) {
                         numTailRecursive++;
                         node->setTailRecursive(true);
-                        tailRecursive = true;
                     }
                 }
                 // a task network can be tail-recursive, without being acyclic or regular
-                if (!tailRecursive) {
-                    if (isTailRecursive(n, htn, node)) numTailRecursive++;
+                if (!node->isTailRecursive()) {
+                    cout << "not both, in here" << endl;
+                    if (isTailRecursive(n, htn, node)) {
+                        cout << "successful + 1" << endl;
+                        node->setTailRecursive(true);
+                        numTailRecursive++;
+                    }
                 }
             }
 
-            if (isTotalOrder(n, htn, node)) numTotalOrder++;
+            if (isTotalOrder(n, htn, node)) {
+                numTotalOrder++;
+                node->setTotallyOrdered(true);
+            }
 
         }
 
@@ -375,31 +385,40 @@ namespace progression {
             return true;
         }
 
-        // rule: once the decompsition happened, the stratum height will not increase
+        // rule: once the decompsition happened, the stratum height will not increase in the subtask
         // iterate all reachable method
         for (const auto& method : visitedMethod) {
             int task = htn->decomposedTask[method];
             // store the original scc
-            int orginalSCC = htn->taskToSCC[task];
+            int fromSCC = htn->taskToSCC[task];
             // iterate all subtasks in this method
             for (int ist = 0; ist < htn->numSubTasks[method]; ist++) { 
                 int subtask = htn->subTasks[method][ist];
-                int newSCC = htn->taskToSCC[subtask];
+                int toSCC = htn->taskToSCC[subtask];
                 // check the number of last tasks in the method
                 // if there is more than one last task
                 if (htn->numLastTasks[method] != 1) {
                     // no subtask should be at same height
-                    if (newSCC == orginalSCC) {
+                    if (toSCC == fromSCC) {
                         return false;
                     }
                 // if there is exactly one last task
                 } else {
+                    cout << "fromSCC: " << fromSCC << endl;
+                    cout << "toSCC: " << toSCC << endl;
+   
                     // if new scc is the same but decomposed task is not the last task
-                    if (subtask != htn->methodsLastTasks[method][0] && newSCC == orginalSCC) {
+                    cout << "method last task: "<< htn->methodsLastTasks[method][0] << endl;
+                    cout << "subtask: "<< subtask << endl;
+                    cout << " " << endl;
+                    if (subtask != htn->methodsLastTasks[method][0] && toSCC == fromSCC) {
+                        cout << "Have last task but non-last task is same height" << endl;
+                        cout << " " << endl;
                         return false;
                     }  
                 }
             }
+            cout << "one method is over"<< endl;
         }
         
         node->setTailRecursive(true);
