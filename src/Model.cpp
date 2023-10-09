@@ -2321,12 +2321,17 @@ newlyReachedMLMs = new noDelIntSet();
 					for (int ist = 0; ist < numSubTasks[method]; ist++) {
 						int subtask = subTasks[method][ist];
 						if (task == subtask) { // this is a self loop
+							/*
+							cout << "acyclic method: " << method << endl;
+							cout << "which scc: " << i << endl;
+							*/
 							selfLoopSccs.insert(i);
 						}
 					}
 				}
 			}
 		}
+		// cout << "selfLoop size: " << selfLoopSccs.size() << endl;
 		numCyclicSccs += selfLoopSccs.size();
 		numSccOneWithSelfLoops = selfLoopSccs.size();
 

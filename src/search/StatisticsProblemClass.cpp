@@ -99,6 +99,10 @@ namespace progression {
                 numAcyclic++;
                 numTailRecursive++;
             } else {
+                cout << "before: " << endl;
+                cout << "acyclic: " << node->isAcyclic() << endl;
+                cout << "regular: " << node->isRegular() << endl;
+                cout << "Tail-recursive: " << node->isTailRecursive() << endl;
                 // if it is regular, then it should be tail-recursive
                 if (isRegular(n, htn, node)) {
                     numRegular++;
@@ -132,6 +136,10 @@ namespace progression {
             }
 
         }
+        cout << "after: " << endl;
+        cout << "acyclic: " << node->isAcyclic() << endl;
+        cout << "regular: " << node->isRegular() << endl;
+        cout << "Tail-recursive: " << node->isTailRecursive() << endl;
 
         if (node->isRegular() && node->isAcyclic()) {
             numAcyclicAndRegular++;
@@ -278,42 +286,44 @@ namespace progression {
             return true;
         }
         */
-        
-        bool oneLastTask = false;
-        // iterate all tasks in n
+
+        // 1. Check how many compound task
+        // 2. Check if there is a last task exits
+        // 3, Check if ther existing last task is the only last task
+        int compoundTaskCount = 0;
+        int compoundTask = 0;
+        int taskWithoutSucc = 0;
+        int lastTask = 0;
+        // bool lastTaskExist = false;
         for (int t = 0; t < tasksContain.size(); t++) {
             int currentT = tasksContain[t]->task;
-
-            // There are two situation that should return false:
-            // t is compound task but not the last task
-            // t is the last task, but there is other last task
-            // if this is not primitive but not last task
             if (!htn->isPrimitive[currentT] ) {
-                // not the last task
-                if (tasksContain[t]->numSuccessors != 0) {
-                    return false;
-                } else { // if this task is the last task
-                    // no count last task before
-                    if (!oneLastTask) {
-                        oneLastTask = true;
-                    } else {    // not the only last task (another compound last task)
-                        return false;
-                    }
-                    
-                }
-            } else {
-                // another primitive last task
-                if (tasksContain[t]->numSuccessors == 0) {
+                compoundTaskCount++;
+                compoundTask = currentT;
+                if (compoundTaskCount > 1) {
                     return false;
                 }
             }
+            if (tasksContain[t]->numSuccessors == 0) {
+                taskWithoutSucc++;
+                lastTask = currentT;
+            }
         }
-        
+        // if last task exists
+        if (taskWithoutSucc == 1) {
+            // But the only compound task is not the last task
+            if (compoundTask != lastTask) {
+                return false;
+            }
+        } else if (taskWithoutSucc != 1 && compoundTaskCount != 0) {
+            // not last task but there is a compound task
+            return false;
+        }
 
         // check wether each method is regular
         for (const auto& methodIter : visitedMethod) {
             // more than one last task
-            if (htn->numLastTasks[methodIter] > 1) {
+            if (htn->numLastTasks[methodIter] != 1) {
                 for (int p = 0; p < htn->numSubTasks[methodIter]; p++) {
                     // any task in this method is not primitive
                     if (!htn->isPrimitive[htn->subTasks[methodIter][p]]) {
@@ -388,6 +398,7 @@ namespace progression {
         // rule: once the decompsition happened, the stratum height will not increase in the subtask
         // iterate all reachable method
         for (const auto& method : visitedMethod) {
+            cout << "Checking method: " << method << endl;
             int task = htn->decomposedTask[method];
             // store the original scc
             int fromSCC = htn->taskToSCC[task];
@@ -404,14 +415,14 @@ namespace progression {
                     }
                 // if there is exactly one last task
                 } else {
-                    cout << "fromSCC: " << fromSCC << endl;
-                    cout << "toSCC: " << toSCC << endl;
-   
-                    // if new scc is the same but decomposed task is not the last task
-                    cout << "method last task: "<< htn->methodsLastTasks[method][0] << endl;
-                    cout << "subtask: "<< subtask << endl;
-                    cout << " " << endl;
                     if (subtask != htn->methodsLastTasks[method][0] && toSCC == fromSCC) {
+                        cout << "fromSCC: " << fromSCC << endl;
+                        cout << "toSCC: " << toSCC << endl;
+                        // if new scc is the same but decomposed task is not the last task
+                        cout << "method last task: "<< htn->methodsLastTasks[method][0] << endl;
+                        cout << "subtask: "<< subtask << endl;
+                        cout << "decomposed task c: "<< task << endl;
+                        cout << "size of this scc:" << htn->sccSize[toSCC] << endl; 
                         cout << "Have last task but non-last task is same height" << endl;
                         cout << " " << endl;
                         return false;
