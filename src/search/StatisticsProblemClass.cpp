@@ -33,9 +33,6 @@ namespace progression {
     // TODO:
     void findProblemClass(searchNode *n, Model *htn, NodeProperties *node) {
         // store all reachable methods
-        if (node == nullptr) {
-            cout << "node null in transport" << endl;
-        }
         for (int i = 0; i < n->numContainedTasks; i++) {
             int taskInNode = n->containedTasks[i];
             if (htn->numMethodsForTask[taskInNode] != 0) {
@@ -60,6 +57,8 @@ namespace progression {
             }
         }
         numExploredNode++;
+
+        cout << "Reachable methods size: " << visitedMethod.size() << endl;
         
         // if the node is getting by progressed an action away
         // we can inherit some properties from father node
@@ -99,10 +98,6 @@ namespace progression {
                 numAcyclic++;
                 numTailRecursive++;
             } else {
-                cout << "before: " << endl;
-                cout << "acyclic: " << node->isAcyclic() << endl;
-                cout << "regular: " << node->isRegular() << endl;
-                cout << "Tail-recursive: " << node->isTailRecursive() << endl;
                 // if it is regular, then it should be tail-recursive
                 if (isRegular(n, htn, node)) {
                     numRegular++;
@@ -134,12 +129,7 @@ namespace progression {
                 numTotalOrder++;
                 node->setTotallyOrdered(true);
             }
-
         }
-        cout << "after: " << endl;
-        cout << "acyclic: " << node->isAcyclic() << endl;
-        cout << "regular: " << node->isRegular() << endl;
-        cout << "Tail-recursive: " << node->isTailRecursive() << endl;
 
         if (node->isRegular() && node->isAcyclic()) {
             numAcyclicAndRegular++;
@@ -332,7 +322,8 @@ namespace progression {
                 }
                 
             } else {    // only one last task
-                int lastTask = htn->methodsLastTasks[methodIter][0];
+                int indexLast = htn->methodsLastTasks[methodIter][0];
+                int lastTask = htn->subTasks[methodIter][indexLast];
                 // iterate all subtasks in this method
                 for (int ist = 0; ist < htn->numSubTasks[methodIter]; ist++) {
                     int subtask = htn->subTasks[methodIter][ist];
@@ -398,7 +389,6 @@ namespace progression {
         // rule: once the decompsition happened, the stratum height will not increase in the subtask
         // iterate all reachable method
         for (const auto& method : visitedMethod) {
-            cout << "Checking method: " << method << endl;
             int task = htn->decomposedTask[method];
             // store the original scc
             int fromSCC = htn->taskToSCC[task];
@@ -415,21 +405,12 @@ namespace progression {
                     }
                 // if there is exactly one last task
                 } else {
-                    if (subtask != htn->methodsLastTasks[method][0] && toSCC == fromSCC) {
-                        cout << "fromSCC: " << fromSCC << endl;
-                        cout << "toSCC: " << toSCC << endl;
-                        // if new scc is the same but decomposed task is not the last task
-                        cout << "method last task: "<< htn->methodsLastTasks[method][0] << endl;
-                        cout << "subtask: "<< subtask << endl;
-                        cout << "decomposed task c: "<< task << endl;
-                        cout << "size of this scc:" << htn->sccSize[toSCC] << endl; 
-                        cout << "Have last task but non-last task is same height" << endl;
-                        cout << " " << endl;
+                    int indexLast = htn->methodsLastTasks[method][0];
+                    if (subtask != htn->subTasks[method][indexLast] && toSCC == fromSCC) {
                         return false;
                     }  
                 }
             }
-            cout << "one method is over"<< endl;
         }
         
         node->setTailRecursive(true);

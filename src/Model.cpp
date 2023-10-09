@@ -2224,10 +2224,15 @@ newlyReachedMLMs = new noDelIntSet();
 	}
 
 	void Model::printMethod(int mI) {
+		cout << "method: " << mI << endl;
 		cout << methodNames[mI] << endl;
+		cout << "decomposed task: " << decomposedTask[mI] << endl;
+		cout << "SCC of the decomposed task: " << taskToSCC[decomposedTask[mI]] << endl;
 		cout << "   @ " << taskNames[decomposedTask[mI]] << endl;
 		for (int i = 0; i < numSubTasks[mI]; i++) {
 			cout << "   " << i << " " << taskNames[subTasks[mI][i]] << endl;
+			cout << "subtask no.: " << subTasks[mI][i] << endl;
+			cout << "SCC of this subtask: " << taskToSCC[subTasks[mI][i]] << endl;
 		}
 		for (int i = 0; i < numOrderings[mI]; i += 2) {
 			cout << "   " << ordering[mI][i] << " < " << ordering[mI][i + 1]
@@ -2321,16 +2326,14 @@ newlyReachedMLMs = new noDelIntSet();
 					for (int ist = 0; ist < numSubTasks[method]; ist++) {
 						int subtask = subTasks[method][ist];
 						if (task == subtask) { // this is a self loop
-							/*
-							cout << "acyclic method: " << method << endl;
-							cout << "which scc: " << i << endl;
-							*/
 							selfLoopSccs.insert(i);
 						}
 					}
 				}
 			}
 		}
+		cout << "print methods for debug: " << endl;
+		printMethods();
 		// cout << "selfLoop size: " << selfLoopSccs.size() << endl;
 		numCyclicSccs += selfLoopSccs.size();
 		numSccOneWithSelfLoops = selfLoopSccs.size();
